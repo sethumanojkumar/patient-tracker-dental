@@ -44,4 +44,4 @@ next-env.d.ts
 # uploaded patient images
 /public/uploads/
 # local sqlite dev DB
-prisma/dev.db
+prisma/dev.db.env.local
