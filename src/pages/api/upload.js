@@ -13,9 +13,23 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+  // In production (Vercel) we must store uploads in external storage
+  // (S3, Vercel Blob, etc.). If STORAGE_PROVIDER is not configured,
+  // reject uploads to avoid relying on Vercel's ephemeral filesystem.
+  const isVercel = !!process.env.VERCEL
+  const storageProvider = process.env.STORAGE_PROVIDER || ''
+
+  if (isVercel && !storageProvider) {
+    return res.status(500).json({
+      error: 'Server is not configured for file uploads in production. Set STORAGE_PROVIDER and related credentials (e.g., S3 keys or Vercel Blob token) as environment variables.'
+    })
+  }
 
   try {
-    // Parse the form data
+    // For local development (or when STORAGE_PROVIDER is not set),
+    // keep the existing behavior of writing to public/uploads.
+    // For production, you should implement storage-specific logic
+    // (S3/Vercel Blob) and set STORAGE_PROVIDER accordingly.
     const form = formidable({
       uploadDir: path.join(process.cwd(), 'public', 'uploads'),
       keepExtensions: true,
