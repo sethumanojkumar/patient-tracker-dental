@@ -30,7 +30,7 @@ npx prisma generate
   - NEXTAUTH_URL = https://your-app.vercel.app
   - NEXTAUTH_SECRET = <long-random-secret>
   - STORAGE_PROVIDER = s3|vercel_blob (your choice)
-  - S3_BUCKET / S3_REGION / S3_KEY / S3_SECRET or VERCEL_BLOB_TOKEN (if using Vercel Blob)
+  - S3_BUCKET / S3_REGION / S3_KEY / S3_SECRET or BLOB_READ_WRITE_TOKEN (if using Vercel Blob)
   - ADMIN_USERNAME / ADMIN_PASSWORD (if used)
 
 5) Migrate production DB

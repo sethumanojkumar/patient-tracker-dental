@@ -1,6 +1,7 @@
 import formidable from 'formidable'
 import fs from 'fs'
 import path from 'path'
+import { put } from '@vercel/blob'
 
 // Disable Next.js body parser (formidable handles it)
 export const config = {
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
       fs.mkdirSync(uploadsDir, { recursive: true })
     }
 
-    form.parse(req, (err, fields, files) => {
+    form.parse(req, async (err, fields, files) => {
       if (err) {
         console.error('Upload error:', err)
         return res.status(500).json({ error: 'Upload failed' })
@@ -63,6 +64,37 @@ export default async function handler(req, res) {
       const newFileName = `patient-${timestamp}${ext}`
       const newPath = path.join(uploadsDir, newFileName)
 
+      // If using Vercel Blob, upload to Blob and return external URL
+      if (storageProvider === 'vercel_blob') {
+        const blobToken = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_TOKEN
+        if (!blobToken) {
+          console.error('Vercel Blob token not configured')
+          return res.status(500).json({ error: 'Vercel Blob token not configured (BLOB_READ_WRITE_TOKEN)' })
+        }
+
+        try {
+          const fileBuffer = fs.readFileSync(uploadedFile.filepath)
+          // Use a pathname without leading slash per Vercel Blob expectations
+          const pathname = `/uploads/${newFileName}`
+          const result = await put(pathname, fileBuffer, {
+            token: blobToken,
+            contentType: uploadedFile.mimetype || 'application/octet-stream',
+            addRandomSuffix: false,
+            allowOverwrite: false
+          })
+
+          // Clean up temp file
+          try { fs.unlinkSync(uploadedFile.filepath) } catch {}
+
+          // result.url is a public URL for the blob
+          return res.status(200).json({ url: result.url, downloadUrl: result.downloadUrl })
+        } catch (err2) {
+          console.error('Vercel Blob upload error:', err2)
+          return res.status(500).json({ error: 'Vercel Blob upload failed', details: err2.message })
+        }
+      }
+
+      // Fallback to local filesystem (development)
       // Rename the file
       fs.renameSync(uploadedFile.filepath, newPath)
 
